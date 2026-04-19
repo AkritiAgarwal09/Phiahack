@@ -34,7 +34,7 @@ Phia Circle is a full-stack AI fashion commerce platform built as a hackathon pr
 | **Isolated shopping** — carts and wishlists are private silos | Shared Carts, Mood Boards, and community discovery feeds |
 | **Impulse vs intent** — promotions feel random | Predictive engine surfaces deals tuned to your occasion and budget |
 
-The platform's key innovation is running **six client-side predictive models** entirely in the browser — no extra ML infrastructure, no additional latency — while integrating GPT-4o for the conversational concierge.
+The platform's key innovation is running **six client-side predictive models** entirely in the browser — no extra ML infrastructure, no additional latency — while integrating Gemini for the conversational concierge.
 
 ---
 

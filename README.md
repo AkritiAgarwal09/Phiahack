@@ -41,7 +41,7 @@ The platform's key innovation is running **six client-side predictive models** e
 ## Features
 
 ### 🤖 AI Concierge
-A multi-turn conversational fashion assistant powered by GPT-4o.
+A multi-turn conversational fashion assistant powered by Gemini.
 
 - **Streaming responses** via Supabase Edge Function (Server-Sent Events)
 - **Persistent conversation history** — pick up where you left off across sessions
@@ -117,8 +117,7 @@ Your fashion DNA, visualised.
          └───────────────────────────────┘
                          │
                   ┌──────▼──────┐
-                  │   OpenAI    │
-                  │   GPT-4o    │
+                  │   Gemini    │
                   └─────────────┘
 ```
 
@@ -278,7 +277,7 @@ Tribe membership is inferred via `inferTribeFromEngagements()` which scores each
 
 1. **User sends a message** (text and/or image) from `AIConcierge.tsx`
 2. The message history + memory chip context is POSTed to the Supabase Edge Function at `/functions/v1/ai-concierge`
-3. The Edge Function calls OpenAI GPT-4o with a fashion-specialist system prompt and **streams the response** back via SSE
+3. The Edge Function calls Gemini with a fashion-specialist system prompt and **streams the response** back via SSE
 4. The client reads the SSE stream and updates the UI in real time
 5. On completion, both the user and assistant messages are persisted to `concierge_messages`
 

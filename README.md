@@ -146,7 +146,7 @@ Your fashion DNA, visualised.
 
 - Node.js ≥ 18 **or** Bun ≥ 1.0
 - A [Supabase](https://supabase.com) project (free tier works)
-- An [OpenAI](https://platform.openai.com) API key
+- A [Gemini] API key
 
 ### 1. Clone & Install
 
@@ -177,10 +177,10 @@ supabase functions deploy ai-concierge
 supabase functions deploy ai-style-summary
 ```
 
-4. Set the OpenAI API key as a Supabase secret:
+4. Set the Gemini API key as a Supabase secret:
 
 ```bash
-supabase secrets set OPENAI_API_KEY=sk-...
+supabase secrets set GEMINI_API_KEY=sk-...
 ```
 
 ### 4. Run Locally

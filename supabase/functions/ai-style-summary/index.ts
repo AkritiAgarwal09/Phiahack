@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchGeminiChat } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,9 +45,6 @@ serve(async (req) => {
       derived: DerivedLite;
     };
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
     const { lovedTitles, passedTitles, likedCount, passedCount } = summarizeSwipes(swipes);
 
     const userBlock = `
@@ -74,19 +72,11 @@ Write a 2-sentence personal style summary in second person ("You ...") that is s
 - Sentence 2: name the price tolerance and one contextual leaning (work, evening, off-duty, vacation, going-out).
 Avoid generic words like "fashionable" or "stylish". No hashtags, no emojis, no preamble — just the two sentences.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userBlock },
-        ],
-      }),
+    const resp = await fetchGeminiChat({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userBlock },
+      ],
     });
 
     if (!resp.ok) {
@@ -103,8 +93,8 @@ Avoid generic words like "fashionable" or "stylish". No hashtags, no emojis, no 
         });
       }
       const t = await resp.text();
-      console.error("AI gateway error:", resp.status, t);
-      throw new Error("AI gateway error");
+      console.error("Gemini error:", resp.status, t);
+      throw new Error("Gemini error");
     }
 
     const data = await resp.json();

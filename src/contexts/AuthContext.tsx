@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { consumeGoogleNonce, parseGoogleIdTokenFromHash, startGoogleIdTokenSignIn } from "@/lib/googleIdentity";
+
+const authRedirectTo = () => `${window.location.origin}/auth`;
 
 interface AuthContextType {
   user: User | null;
@@ -8,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, displayName?: string, inviteCode?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -27,11 +31,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const idToken = parseGoogleIdTokenFromHash();
+    if (idToken) {
+      const nonce = consumeGoogleNonce();
+      void supabase.auth
+        .signInWithIdToken({
+          provider: "google",
+          token: idToken,
+          ...(nonce ? { nonce } : {}),
+        })
+        .then(async ({ error }) => {
+          if (error && nonce) {
+            const retry = await supabase.auth.signInWithIdToken({
+              provider: "google",
+              token: idToken,
+            });
+            if (retry.error) setLoading(false);
+          } else if (error) {
+            setLoading(false);
+          }
+          window.history.replaceState({}, document.title, `${window.location.origin}/auth`);
+        });
+    } else {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      });
+    }
 
     return () => subscription.unsubscribe();
   }, []);
@@ -41,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: authRedirectTo(),
         data: {
           display_name: displayName,
           ...(inviteCode ? { invite_code: inviteCode } : {}),
@@ -56,13 +83,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
   };
 
+  const signInWithGoogle = async () => {
+    await startGoogleIdTokenSignIn();
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

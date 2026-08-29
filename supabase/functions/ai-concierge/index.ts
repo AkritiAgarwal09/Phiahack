@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { CATALOG, shortlistCatalog, findById, type CatalogItem } from "./_catalog.ts";
+import { fetchGeminiChat } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,9 +131,6 @@ serve(async (req) => {
       swap?: { excludeId: string; role?: string; priceMin?: number; priceMax?: number; intent?: string };
     };
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     // ===== SWAP path: non-streaming, returns JSON cards directly =====
     if (swap?.excludeId) {
       const excluded = findById(swap.excludeId);
@@ -157,13 +155,8 @@ serve(async (req) => {
       const sysPrompt = buildSystemPrompt(memory, candidates, true);
       const userPrompt = `Original item: ${excluded?.title || swap.excludeId} (${excluded ? `$${excluded.price}` : "?"}, role: ${swap.role || "n/a"}). User wants: ${swap.intent || "a similar alternative"}. Pick one swap.`;
 
-      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "system", content: sysPrompt }, { role: "user", content: userPrompt }],
-        }),
+      const resp = await fetchGeminiChat({
+        messages: [{ role: "system", content: sysPrompt }, { role: "user", content: userPrompt }],
       });
 
       if (!resp.ok) {
@@ -238,17 +231,12 @@ serve(async (req) => {
       }
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: buildSystemPrompt(memory, slice, false) },
-          ...outboundMessages,
-        ],
-        stream: true,
-      }),
+    const response = await fetchGeminiChat({
+      messages: [
+        { role: "system", content: buildSystemPrompt(memory, slice, false) },
+        ...outboundMessages,
+      ],
+      stream: true,
     });
 
     if (!response.ok) {
@@ -265,7 +253,7 @@ serve(async (req) => {
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI service unavailable" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,0 +1,22 @@
+# dependencies
+node_modules
+
+# build
+dist
+dist-ssr
+*.local
+
+# env (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# supabase cli
+supabase/.temp
+supabase/.branches
+
+# os / editor
+.DS_Store
+.idea
+.vscode
+*.log

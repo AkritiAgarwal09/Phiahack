@@ -1,4 +1,7 @@
-project_id = "rhjwlnaxzdychvxjykpm"
+project_id = "ezivvzhksgohgsnqtryg"
 
 [functions.ai-style-summary]
+verify_jwt = false
+
+[functions.ai-concierge]
 verify_jwt = false

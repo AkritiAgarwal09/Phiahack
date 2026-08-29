@@ -3,11 +3,29 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { lovable } from "@/integrations/lovable";
+
+const formatAuthError = (error: unknown) => {
+  const raw = error instanceof Error ? error.message : String(error);
+  try {
+    const parsed = JSON.parse(raw);
+    const msg = parsed.msg || parsed.message || raw;
+    if (String(msg).toLowerCase().includes("oauth secret")) {
+      return "Google login is not configured yet. In Supabase go to Authentication → Providers → Google and paste your Client ID and Client Secret.";
+    }
+    return msg;
+  } catch {
+    if (raw.toLowerCase().includes("oauth secret")) {
+      return "Google login is not configured yet. In Supabase go to Authentication → Providers → Google and paste your Client ID and Client Secret.";
+    }
+    return raw;
+  }
+};
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const refFromUrl = searchParams.get("ref") || "";
+  const oauthError = searchParams.get("error_description") || searchParams.get("error");
+  const oauthCode = searchParams.get("code");
 
   const [isSignUp, setIsSignUp] = useState(!!refFromUrl);
   const [email, setEmail] = useState("");
@@ -17,7 +35,7 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,6 +45,15 @@ const AuthPage = () => {
       setIsSignUp(true);
     }
   }, [refFromUrl]);
+
+  useEffect(() => {
+    if (!oauthError) return;
+    toast({
+      title: "Google sign-in failed",
+      description: oauthError,
+      variant: "destructive",
+    });
+  }, [oauthError, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +67,7 @@ const AuthPage = () => {
         });
       } else {
         await signIn(email, password);
-        navigate("/");
+        navigate("/app");
       }
     } catch (error: any) {
       toast({
@@ -56,25 +83,27 @@ const AuthPage = () => {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      // Persist invite code so the trigger picks it up after OAuth round-trip
       if (inviteCode) {
         sessionStorage.setItem("pending_invite_code", inviteCode);
       }
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      await signInWithGoogle();
+    } catch (e: unknown) {
+      toast({
+        title: "Google sign-in failed",
+        description: formatAuthError(e),
+        variant: "destructive",
       });
-      if (result.error) {
-        toast({ title: "Google sign-in failed", description: String(result.error), variant: "destructive" });
-        setGoogleLoading(false);
-        return;
-      }
-      if (result.redirected) return;
-      navigate("/");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
       setGoogleLoading(false);
     }
   };
+
+  if (oauthCode && !oauthError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

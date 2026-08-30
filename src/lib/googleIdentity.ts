@@ -9,6 +9,9 @@ const generateNonce = async (): Promise<[string, string]> => {
   return [nonce, hashedNonce];
 };
 
+export const googleRedirectUri = (origin: string) =>
+  `${origin.replace(/\/$/, "")}/auth`;
+
 export const consumeGoogleNonce = () => {
   const nonce = sessionStorage.getItem(NONCE_KEY);
   sessionStorage.removeItem(NONCE_KEY);
@@ -25,7 +28,7 @@ export const startGoogleIdTokenSignIn = async () => {
   const [nonce, hashedNonce] = await generateNonce();
   sessionStorage.setItem(NONCE_KEY, nonce);
 
-  const redirectUri = `${window.location.origin}/auth`;
+  const redirectUri = googleRedirectUri(window.location.origin);
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -38,9 +41,9 @@ export const startGoogleIdTokenSignIn = async () => {
   window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 };
 
-export const parseGoogleIdTokenFromHash = () => {
-  if (!window.location.hash) return null;
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  return hash.get("id_token");
+export const parseGoogleIdTokenFromHash = (hash = window.location.hash) => {
+  if (!hash) return null;
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  return params.get("id_token");
 };
 

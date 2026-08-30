@@ -1,302 +1,182 @@
-# Phia Circle ✨
+# Phia Circle
 
-> **Your AI-powered personal fashion universe.**
-> Swipe to discover. Chat to style. Share to connect.
+AI-powered fashion discovery: swipe to learn taste, chat to style, and share carts and boards with your circle.
 
+**Live app:** [https://phia-circle.vercel.app](https://phia-circle.vercel.app)  
+**Source:** [github.com/AkritiAgarwal09/Phiahack](https://github.com/AkritiAgarwal09/Phiahack)
 
-Live Project URL - https://akriti-phia-hack.lovable.app/
+Built as a hackathon product (Phia Hack 2026), then hosted independently of Lovable: Vite frontend on Vercel, auth/data/AI on Supabase, Gemini for the concierge.
 
----
+## Start here (code sample)
 
-## Table of Contents
+These files are the product logic, not UI scaffold:
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Database Schema](#database-schema)
-- [Service Layer](#service-layer)
-- [Predictive Intelligence Engine](#predictive-intelligence-engine)
-- [AI Concierge](#ai-concierge)
+| File | What it does |
+|---|---|
+| [`src/lib/predictiveEngine.ts`](src/lib/predictiveEngine.ts) | Six in-browser recommendation heuristics (next-buy, occasions, budget, style drift, complete-the-look, viral/circle trends) |
+| [`supabase/functions/ai-concierge/index.ts`](supabase/functions/ai-concierge/index.ts) | Streaming Gemini concierge that returns structured outfit cards |
+| [`src/lib/googleIdentity.ts`](src/lib/googleIdentity.ts) | Google ID-token sign-in that returns to `/auth` (not `supabase.co`) |
+| [`src/pages/SwipeStudio.tsx`](src/pages/SwipeStudio.tsx) + [`src/services/swipeService.ts`](src/services/swipeService.ts) | Swipe loop that writes style DNA |
+
+`src/components/ui/` is shadcn/Radix primitives. Skip it unless you are looking at styling.
 
 ---
 
 ## Overview
 
-Phia Circle is a full-stack AI fashion commerce platform built as a hackathon project. It solves four core problems in fashion discovery:
+Phia Circle is a full-stack fashion commerce demo. It targets four discovery problems:
 
-| Problem | Phia Circle's Answer |
-|---------|---------------------|
-| **Discovery overload** — endless scrolling with no taste filtering | Swipe Studio builds a real-time style DNA from your interactions |
-| **No style memory** — cold-start on every session | Persistent style profile + AI Concierge memory chips |
-| **Isolated shopping** — carts and wishlists are private silos | Shared Carts, Mood Boards, and community discovery feeds |
-| **Impulse vs intent** — promotions feel random | Predictive engine surfaces deals tuned to your occasion and budget |
+| Problem | What the app does |
+|---------|-------------------|
+| Discovery overload | Swipe Studio builds a style profile from likes, skips, and saves |
+| No style memory | Persistent profile plus concierge memory chips |
+| Isolated shopping | Shared carts, mood boards, and a public discover feed |
+| Random promotions | Client-side predictors rank deals by occasion and budget |
 
-The platform's key innovation is running **six client-side predictive models** entirely in the browser — no extra ML infrastructure, no additional latency — while integrating Gemini for the conversational concierge.
-
----
-
-## Features
-
-### 🤖 AI Concierge
-A multi-turn conversational fashion assistant powered by Gemini.
-
-- **Streaming responses** via Supabase Edge Function (Server-Sent Events)
-- **Persistent conversation history** — pick up where you left off across sessions
-- **Memory chips** — saves your preferences (budget, style, upcoming events) and injects them into every prompt
-- **Image upload** — upload an inspiration photo and Phia finds similar styles in the catalog
-- **Outfit card rendering** — AI returns structured product sets that render as interactive swipeable cards with total pricing
-- **"Hot or Not for Me"** — a 5-card inline swipe mini-session that generates personalised taste insights
-- **Proactive nudge chips** — budget alerts, upcoming occasion suggestions, trending picks on the empty state
-- **Cross-page Concierge Bridge** — any page can pre-fill a concierge prompt (e.g. Discover's "Style this with Phia" CTA)
-
-### 💫 Swipe Studio
-Tinder-style discovery that builds your style profile from engagement signals.
-
-- **Four swipe directions**: right (like), left (skip), up (love), tap (save to board)
-- **Swipe reason chips** — after each decision, optionally label why (color, fit, brand, price, style)
-- **Real-time DerivedStyle computation** — six profile dimensions updated after every swipe
-- **Dynamic deck rebuilding** — deck composition shifts as your taste evolves
-- **Undo / history stack** — un-skip any recently skipped card
-- **Cluster trending rail** — live feed of products trending in your aesthetic cluster
-
-### 🌍 Discover
-Multi-section social discovery powered by AI and community signals.
-
-- Followed activity rail — items being saved by the people you follow
-- Cluster trending rail — popular items in your style tribe
-- Viral card highlights — items with spiking saves surfaced as featured cards
-- Public mood boards gallery
-- Upcoming event-aware product suggestions
-- "Style this with Phia" bridge to the AI Concierge
-
-### 👤 Style Profile
-Your fashion DNA, visualised.
-
-- Top categories, colour palette, aesthetic clusters, price tolerance
-- Bold/Minimal and Casual/Formal spectrum scores
-- Taste Evolution — shows how your style has shifted over time
-- Outfit Builder — assemble complete looks from catalog pieces
-- Brand affinity derived from positive swipe and engagement history
+Six predictive models run **in the browser** over the local catalog and engagement rows. Gemini is used only for the conversational concierge.
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                         React SPA (Vite)                              │
-│  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐  ┌────────┐  │
-│  │  Pages  │  │Components│  │  Stores  │  │  Hooks  │  │  Lib   │  │
-│  │ (12+)   │  │(50+ comps│  │ (Zustand)│  │(React Q)│  │(engine)│  │
-│  └────┬────┘  └────┬─────┘  └────┬─────┘  └────┬────┘  └───┬────┘  │
-│       └────────────┴─────────────┴──────────────┘           │        │
-│                          Services Layer (16 modules)         │        │
-│  ┌────────────────────────────────────────────────┐          │        │
-│  │  swipeService · engagementService · moodBoard  │          │        │
-│  │  sharedCart · concierge · points · voucher...  │          │        │
-│  └────────────────────┬───────────────────────────┘          │        │
-│                        │                            predictiveEngine  │
-│                        │                            styleProfile      │
-│                        │                            predictiveNudges  │
-└────────────────────────┼─────────────────────────────────────────────┘
-                         │
-         ┌───────────────▼───────────────┐
-         │         Supabase              │
-         │  ┌──────────┐ ┌───────────┐  │
-         │  │ Postgres  │ │   Auth    │  │
-         │  │ (30+ tbls)│ │(JWT, RLS) │  │
-         │  └──────────┘ └───────────┘  │
-         │  ┌──────────────────────────┐ │
-         │  │    Edge Functions (Deno) │ │
-         │  │  ai-concierge (stream)   │ │
-         │  │  ai-style-summary        │ │
-         │  └──────────────────────────┘ │
-         └───────────────────────────────┘
-                         │
-                  ┌──────▼──────┐
-                  │   Gemini    │
-                  └─────────────┘
+React SPA (Vite)  →  Vercel
+  pages / components / Zustand stores / TanStack Query
+  services (swipe, boards, carts, points, …)
+  predictiveEngine + styleProfile   (no extra ML service)
+
+Supabase
+  Postgres + RLS
+  Auth (email/password + Google ID token)
+  Edge Functions: ai-concierge (SSE), ai-style-summary
+
+Gemini  ←  API keys stored as Supabase secrets (not in Vercel)
 ```
 
-## Tech Stack
-
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| Runtime | Bun / Node | Package management and toolchain |
-| Build | Vite 5 | HMR dev server, ESM-first bundling |
-| UI | React 18 + TypeScript | Strict mode, concurrent features |
-| Styling | TailwindCSS 3 + shadcn/ui + Radix | Utility-first + accessible primitives |
-| Routing | React Router v6 | Client-side navigation |
-| Server State | Tanstack Query (React Query) | Fetching, caching, background sync |
-| Client State | Zustand | Cart, memory chips, bridge, recently viewed |
-| Database | Supabase Postgres | 30+ tables with Row-Level Security |
-| Auth | Supabase Auth | Email/password; JWT in all requests |
-| Edge Functions | Supabase Edge Functions (Deno) | Streaming AI endpoint |
-| AI | Gemini | Conversational concierge |
-| Hosting | Lovable.dev | Managed deploy + Supabase integration |
+**Why this split:** Vercel only serves the static app. Login, tables, and AI HTTP stay on Supabase. Google Cloud is not a host — it only issues the OAuth client for “Sign in with Google.”
 
 ---
 
-## Getting Started
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| App | React 18, TypeScript, Vite 5, Tailwind, shadcn/ui |
+| State | TanStack Query, Zustand |
+| Backend | Supabase (Postgres, Auth, Edge Functions) |
+| AI | Gemini `gemini-2.5-flash` via Google’s OpenAI-compatible API |
+| Hosting | Vercel (frontend) |
+
+---
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js ≥ 18 **or** Bun ≥ 1.0
-- A [Supabase](https://supabase.com) project (free tier works)
-- A [Gemini] API key
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- A Google OAuth **Web** client (for Google sign-in)
+- Gemini API keys stored as Supabase secrets (not in `.env`)
 
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/your-org/akriti-phia-hack.git
-cd akriti-phia-hack
-npm install        # or bun install
-```
-
-### 2. Set Up Environment Variables
-
-Copy the example and fill in your values:
+### Install
 
 ```bash
+git clone https://github.com/AkritiAgarwal09/Phiahack.git
+cd Phiahack
+npm install
 cp .env.example .env
 ```
 
-See [Environment Variables](#environment-variables) for details.
+Fill `.env` from `.env.example`. Never commit `.env`.
 
-### 3. Set Up Supabase
+### Database and functions
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Run the migrations (see `supabase/` for schema files)
-3. Deploy the Edge Functions:
+1. Create a Supabase project.
+2. Run the SQL in `supabase/migrations/` (or `supabase/bootstrap_new_project.sql` if you are bootstrapping a new project).
+3. Deploy functions and set Gemini secrets:
 
 ```bash
-supabase functions deploy ai-concierge
-supabase functions deploy ai-style-summary
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase functions deploy ai-concierge --no-verify-jwt
+npx supabase functions deploy ai-style-summary --no-verify-jwt
+npx supabase secrets set GEMINI_API_KEY=AIza...
 ```
 
-4. Set the Gemini API key as a Supabase secret:
+### Run locally
 
 ```bash
-supabase secrets set GEMINI_API_KEY=sk-...
+npm run dev
 ```
 
-### 4. Run Locally
+Open [http://localhost:8080](http://localhost:8080).
+
+Google Cloud must allow:
+
+- Origin: `http://localhost:8080`
+- Redirect: `http://localhost:8080/auth`
+
+### Checks
 
 ```bash
-npm run dev        # or bun dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-### 5. Build for Production
-
-```bash
+npm run lint
+npm test
 npm run build
-npm run preview   # preview the production build locally
 ```
 
 ---
 
-## Environment Variables
+## Environment variables
 
-Create a `.env` file in the project root:
+Frontend (`.env` and Vercel project settings):
 
-```env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...            # anon/publishable key from Supabase dashboard
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-or-publishable-key
 VITE_SUPABASE_PROJECT_ID=your-project-id
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 ```
 
-> **Note:** `VITE_SUPABASE_PUBLISHABLE_KEY` is the **anon** key (safe to expose in the frontend). All privileged operations go through Row-Level Security or Edge Functions with the service role key stored as a Supabase secret.
+`VITE_SUPABASE_PUBLISHABLE_KEY` is the anon/publishable key (safe in the browser). Privileged work goes through RLS or Edge Functions.
 
-
-## Predictive Intelligence Engine
-
-`src/lib/predictiveEngine.ts` implements six heuristic prediction models that run **entirely in the browser** over the local product catalog and Supabase-fetched signals. No serverside ML, no embedding models, no extra latency.
-
-### Models
-
-#### A — Next-Buy Predictor
-```typescript
-nextBuyPrediction(engagements, wishlist, recentlyViewedIds) → NextBuyResult
-```
-Aggregates category and tag weights from all signals, scores every catalog item, and returns the top 12 with a natural-language pitch and budget ceiling (avg spend × 1.25).
-
-#### B — Occasion-Aware Discovery
-```typescript
-occasionSuggestions(events, birthday?) → OccasionSuggestion[]
-```
-Maps upcoming calendar events to occasion-specific tag sets and surfaces relevant products. Auto-synthesises a birthday event if the user's DOB is on file.
-
-#### C — Budget-Smart Feed
-```typescript
-budgetSmartFeed(engagements) → BudgetSmartResult
-```
-Derives average purchase price and **sale sensitivity** (high wishlist:purchase ratio → user waits for deals → show value picks). Returns floor/ceiling-filtered items with behavioural pitch copy.
-
-#### D — Style Progression Engine
-```typescript
-styleProgression(engagements) → StyleProgression
-```
-Splits engagement history in half chronologically, infers a Style Tribe per period, detects drift and generates a first-person narrative (e.g. "You used to lean Clean Girl, but lately you're shifting toward Quiet Luxury.").
-
-#### E — Complete the Look
-```typescript
-completeTheLook(anchor) → CompletionResult
-```
-Uses a hard-coded tag complement map (`dress → [heels, bag, jewelry]`) to score the catalog by complementary tags, style family overlap and price ratio.
-
-#### F — Trending in Your Circle + Viral Trends
-```typescript
-trendingInYourCircle(trending, myEngagements) → TrendingInCircle
-viralTrends(trending) → ViralTrend[]
-```
-Boosts platform trending scores by tag overlap with the current user's history. Viral detection aggregates tag-level engagement scores across all trending rows.
-
-### Style Tribes
-
-| Tribe | Emoji | Styles | Key Tags |
-|-------|-------|--------|----------|
-| Quiet Luxury | 🤍 | minimal, editorial | cashmere, tailoring, wool, silk |
-| Clean Girl | 🌿 | minimal | ribbed, basic, knit, jewelry |
-| Downtown Vintage | 🖤 | streetwear, editorial | denim, leather, vintage |
-| Soft Femme | 🌸 | romantic | floral, satin, silk, lace |
-| Street Utility | 🛹 | streetwear, athleisure | cargo, puffer, sneakers, utility |
-| Resort Minimal | 🌅 | boho, minimal | linen, vacation, resort, summer |
-
-Tribe membership is inferred via `inferTribeFromEngagements()` which scores each tribe against the user's engagement tag history.
+Gemini keys (`GEMINI_API_KEY`, optional `_2` / `_3`) belong only in [Supabase function secrets](https://supabase.com/dashboard/project/_/settings/functions).
 
 ---
 
-## AI Concierge
+## Production (Vercel)
 
-### How It Works
+The frontend is deployed from this GitHub repo. After the first deploy:
 
-1. **User sends a message** (text and/or image) from `AIConcierge.tsx`
-2. The message history + memory chip context is POSTed to the Supabase Edge Function at `/functions/v1/ai-concierge`
-3. The Edge Function calls Gemini with a fashion-specialist system prompt and **streams the response** back via SSE
-4. The client reads the SSE stream and updates the UI in real time
-5. On completion, both the user and assistant messages are persisted to `concierge_messages`
+1. Set the four `VITE_*` variables on Vercel and redeploy if you added them late.
+2. In Supabase Auth URL config, add `https://phia-circle.vercel.app/auth` and `https://phia-circle.vercel.app/**`.
+3. In Google Cloud, add origin `https://phia-circle.vercel.app` and redirect `https://phia-circle.vercel.app/auth`.
 
-### Outfit Card Rendering
-
-The AI is prompted to return structured product suggestions using a special markdown syntax. `src/lib/conciergeCards.ts` parses this into `CardSection` objects, which render as horizontal scrollable `MiniProductCard` components with total pricing.
-
-### Memory System
-
-Memory chips (stored in `conciergeMemory`) are injected into every request as part of the system prompt:
-
-```
-User preferences: budget=$200, styles=minimal+editorial, upcoming=beach wedding
-```
-
-This gives the AI consistent context across all conversations without re-asking.
+`vercel.json` rewrites all routes to `index.html` so `/auth` and `/app` work after Google redirects.
 
 ---
 
-*Built for Phia Hack 2026
+## Predictive engine (summary)
 
-Made By : Akriti Agarwal
+`src/lib/predictiveEngine.ts` scores the local catalog from engagement, wishlist, and recents. There is no embedding model and no extra latency.
+
+- **Next-buy** — category/tag weights → top 12 with a budget ceiling  
+- **Occasions** — calendar events → tag-mapped products  
+- **Budget-smart** — sale sensitivity from wishlist:purchase ratio  
+- **Style progression** — tribe drift between first and second half of history  
+- **Complete the look** — complement tags around an anchor item  
+- **Circle / viral** — boost platform trending by overlap with the user  
+
+Style tribes: Quiet Luxury, Clean Girl, Downtown Vintage, Soft Femme, Street Utility, Resort Minimal.
+
+---
+
+## AI concierge
+
+1. The client POSTs history + memory chips to `/functions/v1/ai-concierge`.
+2. The function calls Gemini and streams SSE.
+3. Structured ` ```cards ` blocks are parsed in `src/lib/conciergeCards.ts` into product carousels.
+
+---
+
+## License
+
+MIT. See [LICENSE](LICENSE). How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).

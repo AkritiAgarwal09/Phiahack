@@ -8,9 +8,15 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+const browserStorage =
+  typeof globalThis !== "undefined" &&
+  typeof (globalThis as { localStorage?: Storage }).localStorage?.getItem === "function"
+    ? (globalThis as unknown as { localStorage: Storage }).localStorage
+    : undefined;
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: browserStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

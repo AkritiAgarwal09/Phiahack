@@ -401,7 +401,7 @@ export function trendingInYourCircle(
   }
 
   const meta = new Map<string, { score: number; users: number }>();
-  let scored = trending.map((t) => {
+  const scored = trending.map((t) => {
     let s = Number(t.total_score);
     const tt = (t.tags || []).filter((x): x is string => !!x).map((x) => x.toLowerCase());
     let overlap = 0;

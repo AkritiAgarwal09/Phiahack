@@ -88,7 +88,9 @@ const FlashSales = () => {
     let key: Record<string, true> = {};
     try {
       key = JSON.parse(localStorage.getItem(NOTIF_KEY) || "{}");
-    } catch {}
+    } catch {
+      key = {};
+    }
     const fresh = eligibleSales.filter((s) => !key[`${user.id}:${s.id}`]);
     if (fresh.length === 0) return;
 
@@ -105,7 +107,7 @@ const FlashSales = () => {
         // Silent; ignore failures (RLS denies INSERT — best-effort optimistic write)
         await supabase.from("notifications").insert(rows as never);
       } catch (e) {
-        // No-op
+        console.warn("[flash-sales] notification insert failed", e);
       } finally {
         fresh.forEach((s) => (key[`${user.id}:${s.id}`] = true));
         localStorage.setItem(NOTIF_KEY, JSON.stringify(key));

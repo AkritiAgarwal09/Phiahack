@@ -85,6 +85,12 @@ const MiniProductCard = ({ productId, note, role, compact = false }: Props) => {
             alt={node.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (img.dataset.fallback) return;
+              img.dataset.fallback = "1";
+              img.src = `https://picsum.photos/seed/${encodeURIComponent(node.id)}/900/1200`;
+            }}
           />
         )}
         {role && (

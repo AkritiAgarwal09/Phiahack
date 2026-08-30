@@ -88,6 +88,12 @@ const ProductDetailDialog = ({
                   src={images[activeImage].node.url}
                   alt={images[activeImage].node.altText || node.title}
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.dataset.fallback) return;
+                    img.dataset.fallback = "1";
+                    img.src = `https://picsum.photos/seed/${encodeURIComponent(node.id)}/900/1200`;
+                  }}
                 />
               )}
             </div>

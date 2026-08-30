@@ -50,6 +50,12 @@ const ShopifyProductCard = ({
             alt={node.images.edges[0].node.altText || node.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (img.dataset.fallback) return;
+              img.dataset.fallback = "1";
+              img.src = `https://picsum.photos/seed/${encodeURIComponent(node.id)}/900/1200`;
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">

@@ -5,7 +5,7 @@ AI-powered fashion discovery: swipe to learn taste, chat to style, and share car
 **Live app:** [https://phia-circle.vercel.app](https://phia-circle.vercel.app)  
 **Source:** [github.com/AkritiAgarwal09/Phiahack](https://github.com/AkritiAgarwal09/Phiahack)
 
-Built as a hackathon product (Phia Hack 2026), then hosted independently of Lovable: Vite frontend on Vercel, auth/data/AI on Supabase, Gemini for the concierge.
+Built as a hackathon product (Phia Hack 2026): Vite frontend on Vercel, auth/data/AI on Supabase, Gemini for the concierge.
 
 ## Start here (code sample)
 
